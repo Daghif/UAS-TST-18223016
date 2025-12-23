@@ -1,0 +1,9 @@
+services:
+  api:
+    build: .             # Membangun image dari Dockerfile di folder ini
+    container_name: book-review-container
+    ports:
+      - "3000:3000"      # Mapping port komputer:container
+    env_file:
+      - .env             # Otomatis membaca file .env Anda
+    restart: always      # Restart otomatis jika crash
