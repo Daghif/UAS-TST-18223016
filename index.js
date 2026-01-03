@@ -122,3 +122,32 @@ app.post('/api/reviews', authenticateToken, async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server JWT berjalan di http://localhost:${PORT}`);
 });
+
+// 3b. GET Satu Buku (Versi Flat / Tidak Bertumpuk)
+app.get('/api/books/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    // Kita pakai JOIN biasa, tanpa GROUP BY
+    const result = await pool.query(`
+      SELECT 
+        b.title AS judul_buku, 
+        b.author AS penulis,
+        u.name AS nama_pemberi_review,
+        r.rating, 
+        r.comment AS isi_review
+      FROM books b
+      LEFT JOIN reviews r ON b.id = r.book_id
+      LEFT JOIN users u ON r.user_id = u.id
+      WHERE b.id = $1
+    `, [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Buku tidak ditemukan' });
+    }
+
+    // Langsung kirim array baris apa adanya
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
