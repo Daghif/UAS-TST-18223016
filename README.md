@@ -57,8 +57,8 @@ cd UAS-TST-18223016
 Buat file baru bernama `.env` di folder root, lalu isi dengan konfigurasi berikut:
 
 ```env
-DATABASE_URL=postgres://user:password@host:port/database?sslmode=require
-JWT_SECRET=rahasia_super_aman_ganti_ini
+DATABASE_URL=postgres://user:password@host:port/database?sslmode=require(isi dengan link dari neon, ini placeholder)
+JWT_SECRET=rahasia_super_aman_ganti_ini(placeholder, isi dengan database yang sesuai)
 PORT=3000
 ```
 
