@@ -92,10 +92,10 @@ Pastikan file `.env` sudah dibuat seperti langkah di atas.
 node setup.js
 ```
 
-### 4. (Opsional) Seed Data Awal
+### 4. (Opsional) Seed Data Awal (Saya mengambil data dari goodreads pribadi)
 
 ```bash
-node seed.js
+node seed_goodreads.js
 ```
 
 ### 5. Jalankan Server
