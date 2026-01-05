@@ -46,9 +46,18 @@ app.post('/api/auth/login', async (req, res) => {
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) return res.status(400).json({ error: 'Password salah' });
 
-    // Buat Token (Berlaku 24 jam)
     const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '24h' });
-    res.json({ message: "Login berhasil", token });
+    
+    // Kembalikan token DAN user info
+    res.json({ 
+      message: "Login berhasil", 
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -131,6 +140,22 @@ app.post('/api/books', authenticateToken, async (req, res) => {
 // ==========================================
 // 3. BAGIAN REVIEW & SOSIAL (Likes)
 // ==========================================
+app.get('/api/my-reviews', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT r.id, r.rating, r.comment, r.created_at,
+             b.id as book_id, b.title as book_title, b.author as book_author, b.total_pages
+      FROM reviews r
+      JOIN books b ON r.book_id = b.id
+      WHERE r.user_id = $1
+      ORDER BY r.created_at DESC
+    `, [req.user.id]);
+    
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Tambah Review
 app.post('/api/reviews', authenticateToken, async (req, res) => {
