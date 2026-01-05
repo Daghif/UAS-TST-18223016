@@ -20,7 +20,7 @@ Backend RESTful API untuk sistem manajemen buku dan review ala Goodreads. Dibang
 
 ---
 
-## 🛠️ Teknologi yang Digunakan
+## Teknologi yang Digunakan
 
 | Teknologi | Deskripsi |
 |-----------|-----------|
