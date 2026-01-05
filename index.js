@@ -212,7 +212,7 @@ app.post('/api/shelves', authenticateToken, async (req, res) => {
 app.get('/api/shelves', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT s.id, s.name, s.created_at, COUNT(si.book_id) as total_books 
+      SELECT s.id, s.name, s.created_at, COUNT(si.book_id)::int as total_books 
       FROM shelves s
       LEFT JOIN shelf_items si ON s.id = si.shelf_id
       WHERE s.user_id = $1
@@ -220,7 +220,10 @@ app.get('/api/shelves', authenticateToken, async (req, res) => {
       ORDER BY s.created_at DESC
     `, [req.user.id]);
     res.json(result.rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { 
+    console.error('Error get shelves:', err);
+    res.status(500).json({ error: err.message }); 
+  }
 });
 
 // Get Detail Rak dengan Buku di dalamnya
@@ -237,13 +240,13 @@ app.get('/api/shelves/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Rak tidak ditemukan' });
     }
 
-    // Ambil buku di dalam rak
+    // Ambil buku di dalam rak - UBAH created_at ke added_at
     const booksRes = await pool.query(`
       SELECT b.id, b.title, b.author, b.total_pages, b.description
       FROM shelf_items si
       JOIN books b ON si.book_id = b.id
       WHERE si.shelf_id = $1
-      ORDER BY si.created_at DESC
+      ORDER BY si.added_at DESC
     `, [id]);
 
     res.json({
@@ -251,6 +254,7 @@ app.get('/api/shelves/:id', authenticateToken, async (req, res) => {
       books: booksRes.rows
     });
   } catch (err) { 
+    console.error('Error get shelf detail:', err);
     res.status(500).json({ error: err.message }); 
   }
 });
