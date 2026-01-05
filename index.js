@@ -190,6 +190,13 @@ app.post('/api/reviews/:id/like', authenticateToken, async (req, res) => {
 // ==========================================
 
 // Buat Rak Baru (Contoh: "Favorit 2024")
+// ...existing code...
+
+// ==========================================
+// 4. BAGIAN RAK BUKU (Custom Shelves)
+// ==========================================
+
+// Buat Rak Baru
 app.post('/api/shelves', authenticateToken, async (req, res) => {
   const { name } = req.body;
   try {
@@ -205,14 +212,47 @@ app.post('/api/shelves', authenticateToken, async (req, res) => {
 app.get('/api/shelves', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT s.id, s.name, COUNT(si.book_id) as total_books 
+      SELECT s.id, s.name, s.created_at, COUNT(si.book_id) as total_books 
       FROM shelves s
       LEFT JOIN shelf_items si ON s.id = si.shelf_id
       WHERE s.user_id = $1
       GROUP BY s.id
+      ORDER BY s.created_at DESC
     `, [req.user.id]);
     res.json(result.rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Get Detail Rak dengan Buku di dalamnya
+app.get('/api/shelves/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    // Cek kepemilikan rak
+    const shelfRes = await pool.query(
+      'SELECT * FROM shelves WHERE id = $1 AND user_id = $2', 
+      [id, req.user.id]
+    );
+    
+    if (shelfRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Rak tidak ditemukan' });
+    }
+
+    // Ambil buku di dalam rak
+    const booksRes = await pool.query(`
+      SELECT b.id, b.title, b.author, b.total_pages, b.description
+      FROM shelf_items si
+      JOIN books b ON si.book_id = b.id
+      WHERE si.shelf_id = $1
+      ORDER BY si.created_at DESC
+    `, [id]);
+
+    res.json({
+      ...shelfRes.rows[0],
+      books: booksRes.rows
+    });
+  } catch (err) { 
+    res.status(500).json({ error: err.message }); 
+  }
 });
 
 // Masukkan Buku ke Rak
@@ -228,6 +268,40 @@ app.post('/api/shelves/:id/add', authenticateToken, async (req, res) => {
       [req.params.id, book_id]
     );
     res.json({ message: "Buku berhasil masuk rak" });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Hapus Buku dari Rak
+app.delete('/api/shelves/:id/remove', authenticateToken, async (req, res) => {
+  const { book_id } = req.body;
+  try {
+    // Cek kepemilikan rak
+    const check = await pool.query('SELECT * FROM shelves WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+    if (check.rows.length === 0) return res.status(403).json({ error: "Rak tidak ditemukan/bukan milik Anda" });
+
+    await pool.query(
+      'DELETE FROM shelf_items WHERE shelf_id = $1 AND book_id = $2',
+      [req.params.id, book_id]
+    );
+    res.json({ message: "Buku berhasil dihapus dari rak" });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Hapus Rak (beserta isinya)
+app.delete('/api/shelves/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    // Cek kepemilikan rak
+    const check = await pool.query('SELECT * FROM shelves WHERE id = $1 AND user_id = $2', [id, req.user.id]);
+    if (check.rows.length === 0) return res.status(403).json({ error: "Rak tidak ditemukan/bukan milik Anda" });
+
+    // Hapus semua buku di rak dulu
+    await pool.query('DELETE FROM shelf_items WHERE shelf_id = $1', [id]);
+    
+    // Hapus rak
+    await pool.query('DELETE FROM shelves WHERE id = $1', [id]);
+    
+    res.json({ message: "Rak berhasil dihapus" });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
